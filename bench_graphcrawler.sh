@@ -6,11 +6,9 @@
 #SBATCH --partition=Centaurus
 #SBATCH --mem=10G
 
-srun $HOME/GraphCrawlerSW/static_work_graphcrawler/sequential/ "Tom Hanks" 2
-srun $HOME/GraphCrawlerSW/static_work_graphcrawler/sequential/ "Tom Hanks" 2
-srun $HOME/GraphCrawlerSW/static_work_graphcrawler/sequential/ "Tom Hanks" 2
-srun $HOME/GraphCrawlerSW/static_work_graphcrawler/Parallel/paraLC"Tom Hanks" 2
-srun $HOME/GraphCrawlerSW/static_work_graphcrawler/Parallel/paraLC"Tom Hanks" 3
-srun $HOME/GraphCrawlerSW/static_work_graphcrawler/Parallel/paraLC"Tom Hanks" 4
-srun $HOME/GraphCrawlerSW/graphCrawler "Tom Hanks" 3
-srun $HOME/GraphCrawlerSW/graphCrawler "Tom Hanks" 4
+srun $HOME/GraphCrawlerSW/sequential/seqLC "Tom Hanks" 2
+srun $HOME/GraphCrawlerSW/sequential/seqLC "Tom Hanks" 3
+srun $HOME/GraphCrawlerSW/sequential/seqLC "Tom Hanks" 4
+srun $HOME/GraphCrawlerSW/Parallel/paraLC"Tom Hanks" 2
+srun $HOME/GraphCrawlerSW/Parallel/paraLC"Tom Hanks" 3
+srun $HOME/GraphCrawlerSW/Parallel/paraLC"Tom Hanks" 4
