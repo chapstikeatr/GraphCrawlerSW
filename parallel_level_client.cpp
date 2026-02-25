@@ -1,4 +1,3 @@
-
 #include <algorithm>
 #include <chrono>
 #include <curl/curl.h>
@@ -24,30 +23,30 @@ struct ParseException : std::runtime_error, rapidjson::ParseResult {
 
 bool debug = false;
 
-// Updated service URL
+// Service URL
 const std::string SERVICE_URL =
     "http://hollywood-graph-crawler.bridgesuncc.org/neighbors/";
 
-// function to http ecnode parts of urls. for instance, replace spaces with
-// '%20' for urls
-std::string url_encode(CURL *curl, std::string input) {
-  char *out = curl_easy_escape(curl, input.c_str(), input.size());
-  std::string s = out;
-  curl_free(out);
+// URL-encode parts of URLs (e.g., spaces -> %20)
+static std::string url_encode(CURL *curl, const std::string &input) {
+  char *out =
+      curl_easy_escape(curl, input.c_str(), static_cast<int>(input.size()));
+  std::string s = out ? out : "";
+  if (out)
+    curl_free(out);
   return s;
 }
 
 // Callback for writing response data
-size_t WriteCallback(void *contents, size_t size, size_t nmemb,
-                     std::string *output) {
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb,
+                            std::string *output) {
   const size_t totalSize = size * nmemb;
-  output->append((char *)contents, totalSize);
+  output->append(static_cast<char *>(contents), totalSize);
   return totalSize;
 }
 
-// Function to fetch neighbors using libcurl with debugging
-std::string fetch_neighbors(CURL *curl, const std::string &node) {
-
+// Fetch neighbors JSON using libcurl
+static std::string fetch_neighbors(CURL *curl, const std::string &node) {
   std::string url = SERVICE_URL + url_encode(curl, node);
   std::string response;
 
@@ -58,7 +57,6 @@ std::string fetch_neighbors(CURL *curl, const std::string &node) {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-  // curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L); // Verbose Logging
 
   // Set a User-Agent header to avoid potential blocking by the server
   struct curl_slist *headers = nullptr;
@@ -69,34 +67,33 @@ std::string fetch_neighbors(CURL *curl, const std::string &node) {
 
   if (res != CURLE_OK) {
     std::cerr << "CURL error: " << curl_easy_strerror(res) << std::endl;
-  } else {
-    if (debug)
-      std::cout << "CURL request successful!" << std::endl;
+  } else if (debug) {
+    std::cout << "CURL request successful!" << std::endl;
   }
 
-  // Cleanup
   curl_slist_free_all(headers);
 
   if (debug)
-    std::cout << "Response received: " << response << std::endl; // Debug log
+    std::cout << "Response received: " << response << std::endl;
 
   return (res == CURLE_OK) ? response : "{}";
 }
 
-// Function to parse JSON and extract neighbors
-std::vector<std::string> get_neighbors(const std::string &json_str) {
+// Parse JSON and extract neighbors
+static std::vector<std::string> get_neighbors(const std::string &json_str) {
   std::vector<std::string> neighbors;
   try {
     rapidjson::Document doc;
     doc.Parse(json_str.c_str());
 
     if (doc.HasMember("neighbors") && doc["neighbors"].IsArray()) {
-      for (const auto &neighbor : doc["neighbors"].GetArray())
+      for (const auto &neighbor : doc["neighbors"].GetArray()) {
         neighbors.push_back(neighbor.GetString());
+      }
     }
   } catch (const ParseException &e) {
     std::cerr << "Error while parsing JSON: " << json_str << std::endl;
-    throw e;
+    throw;
   }
   return neighbors;
 }
@@ -115,26 +112,29 @@ std::vector<std::vector<std::string>> bfs_parallel(const std::string &start,
     if (debug)
       std::cout << "starting level: " << d << "\n";
 
-    levels.push_back({});
     const auto &current = levels[d];
+    levels.push_back({});
     auto &next = levels[d + 1];
 
-    const int threads_to_use =
-        std::max(1, std::min<int>(max_threads, (int)(current.size())));
+    if (current.empty()) {
+      continue;
+    }
 
+    const int threads_to_use = std::max(
+        1, std::min<int>(max_threads, static_cast<int>(current.size())));
     std::vector<std::thread> threads;
     threads.reserve(static_cast<size_t>(threads_to_use));
 
-    // Evenly distribute nodes among threads
-    int n = (int)current.size();
-    int base = n / threads_to_use;
-    int rem = n % threads_to_use;
+    // Evenly distribute nodes among threads using contiguous blocks
+    const int n = (int)current.size();
+    const int base = n / threads_to_use;
+    const int rem = n % threads_to_use;
 
     int begin = 0;
     for (int t = 0; t < threads_to_use; t++) {
-      int extra =
+      const int extra =
           (t < rem) ? 1 : 0; // Chat GPT optimization from the use of 2 if's
-      int end = begin + base + extra;
+      const int end = begin + base + extra;
 
       threads.emplace_back(
           [&, begin, end]() { // Chat GPT optimization of what was previously an
@@ -150,9 +150,7 @@ std::vector<std::vector<std::string>> bfs_parallel(const std::string &start,
             for (int i = begin; i < end; i++) {
 
               const std::string &s = current[static_cast<size_t>(i)];
-
               try {
-
                 if (debug) {
                   std::lock_guard<std::mutex> lk(m);
                   std::cout << "Trying to expand " << s << "\n";
@@ -163,7 +161,6 @@ std::vector<std::vector<std::string>> bfs_parallel(const std::string &start,
                   bool inserted = false;
                   {
                     std::lock_guard<std::mutex> lk(m);
-
                     auto it = visited.find(neighbor);
                     if (it == visited.end()) {
                       visited.insert(neighbor);
@@ -171,11 +168,17 @@ std::vector<std::vector<std::string>> bfs_parallel(const std::string &start,
                       inserted = true;
                     }
                   }
+
+                  if (debug && inserted) {
+                    std::lock_guard<std::mutex> lk(m);
+                    std::cout << "  neighbor " << neighbor << "\n";
+                  }
                 }
               } catch (const ParseException &) {
                 std::lock_guard<std::mutex> lk(m);
                 std::cerr << "Error while fetching neighbors of: " << s
                           << std::endl;
+                // keep going; one bad node shouldn't kill the crawl
               }
             }
 
@@ -194,9 +197,9 @@ std::vector<std::vector<std::string>> bfs_parallel(const std::string &start,
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 4) {
+  if (argc != 3) {
     std::cerr << "Usage: " << argv[0]
-              << " <node_name> <depth> <# of threads>\n";
+              << " <node_name> <depth> <number of threads>\n";
     return 1;
   }
 
@@ -204,7 +207,7 @@ int main(int argc, char *argv[]) {
   int depth;
   try {
     depth = std::stoi(argv[2]);
-  } catch (const std::exception &e) {
+  } catch (...) {
     std::cerr << "Error: Depth must be an integer.\n";
     return 1;
   }
