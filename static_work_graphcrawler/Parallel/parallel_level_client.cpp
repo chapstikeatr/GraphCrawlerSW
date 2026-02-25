@@ -1,3 +1,4 @@
+
 #include <algorithm>
 #include <chrono>
 #include <curl/curl.h>
@@ -114,13 +115,9 @@ std::vector<std::vector<std::string>> bfs_parallel(const std::string &start,
     if (debug)
       std::cout << "starting level: " << d << "\n";
 
-    const auto &current = levels[d];
     levels.push_back({});
+    const auto &current = levels[d];
     auto &next = levels[d + 1];
-
-    //    if (current.empty()) {
-    //      continue;
-    //    }
 
     const int threads_to_use =
         std::max(1, std::min<int>(max_threads, (int)(current.size())));
@@ -197,9 +194,9 @@ std::vector<std::vector<std::string>> bfs_parallel(const std::string &start,
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 3) {
+  if (argc != 4) {
     std::cerr << "Usage: " << argv[0]
-              << " <node_name> <depth> <number of threads>\n";
+              << " <node_name> <depth> <# of threads>\n";
     return 1;
   }
 
@@ -217,7 +214,7 @@ int main(int argc, char *argv[]) {
 
   const auto start{std::chrono::steady_clock::now()};
 
-  const int MAX_THREADS = 50;
+  const int MAX_THREADS = std::stoi(argv[3]);
   for (const auto &level : bfs_parallel(start_node, depth, MAX_THREADS)) {
     for (const auto &node : level) {
       std::cout << "- " << node << "\n";
