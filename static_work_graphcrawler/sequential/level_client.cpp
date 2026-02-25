@@ -3,8 +3,8 @@
 #include <curl/curl.h>
 #include <iostream>
 #include <queue>
-#include <rapidjson/error/error.h>
-#include <rapidjson/reader.h>
+#include "rapidjson/error/error.h"
+#include "rapidjson/reader.h"
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
