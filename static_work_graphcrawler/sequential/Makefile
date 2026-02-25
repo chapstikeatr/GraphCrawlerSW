@@ -1,14 +1,18 @@
-#CXXFLAGS=-I ../rapidjson/include
-LDFLAGS=-lcurl
-LD=g++
-CC=g++
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall -Wextra -O2
 
-all: level_client par_level_client
+RAPIDJSON_INC = ../rapidjson/include
+LDFLAGS = -lcurl
 
-level_client: level_client.o
-	$(LD) $< -o $@ $(LDFLAGS)
+TARGET = seqLC
+SRC = level_client.cpp
 
+.PHONY: all clean
 
+all: $(TARGET)
+
+$(TARGET): $(SRC)
+	$(CXX) $(CXXFLAGS) -I$(RAPIDJSON_INC) $(SRC) -o $(TARGET) $(LDFLAGS)
 
 clean:
-	-rm level_client level_client.o
+	rm -f $(TARGET)
